@@ -4,13 +4,13 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   KeyboardAvoidingView,
   Platform,
   Image,
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import styles from "../css/SignUpScreen"
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SignupScreen({ navigation }) {
@@ -149,113 +149,4 @@ export default function SignupScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  logoContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 30,
-    backgroundColor: '#FAFBFC',
-  },
-  logoImage: {
-    width: 150,
-    height: 150,
-    borderRadius: 20,
-    backgroundColor: '#FAFBFC',
-    shadowColor: '#4A90E2',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  welcomeContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  welcomeTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#1A1D29',
-    marginBottom: 8,
-  },
-  welcomeSubtitle: {
-    fontSize: 15,
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 20,
-    color: '#374151',
-    marginBottom: 15,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-    paddingHorizontal: 16,
-    paddingVertical: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  inputContainerFocused: {
-    borderColor: '#4A90E2',
-    shadowColor: '#4A90E2',
-    shadowOpacity: 0.15,
-  },
-  inputIcon: {
-    marginRight: 12,
-    padding: 8,
-    backgroundColor: '#F0F7FF',
-    borderRadius: 8,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: '#1F2937',
-    paddingVertical: 16,
-    fontWeight: '500',
-  },
-  eyeIcon: {
-    padding: 8,
-    marginLeft: 8,
-  },
-  loginButton: {
-    backgroundColor: '#4A90E2',
-    paddingVertical: 16,
-    borderRadius: 16,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#4A90E2',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-    marginTop: 10,
-  },
-  loginButtonDisabled: {
-    opacity: 0.5,
-  },
-  loginButtonText: {
-    color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: '700',
-    marginRight: 8,
-  },
-  buttonIcon: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 20,
-    padding: 4,
-  },
-});
+

@@ -1,45 +1,228 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from "react"
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   KeyboardAvoidingView,
   Platform,
   Image,
   ScrollView,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
+  Modal,
+} from "react-native"
+import { Ionicons } from "@expo/vector-icons"
+import { SafeAreaView } from "react-native-safe-area-context"
+import { Toast } from "../components/Toast"
+import { useToast } from "../hooks/useToast"
+import styles from "../css/LoginScreen"
 
 export default function LoginScreen({ navigation }) {
-  const [showPassword, setShowPassword] = useState(false);
-  const [focusedInput, setFocusedInput] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false)
+  const [focusedInput, setFocusedInput] = useState("")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const passwordRef = useRef(null)
 
-  const passwordRef = useRef(null);
+  // Toast hook
+  const { toast, showToast, hideToast } = useToast()
 
-  const isButtonDisabled = !email || !password;
+  // Forgot Password Modal States
+  const [forgotPasswordModalVisible, setForgotPasswordModalVisible] = useState(false)
+  const [forgotPasswordStep, setForgotPasswordStep] = useState(1) // 1: Email, 2: OTP, 3: New Password
+  const [forgotEmail, setForgotEmail] = useState("")
+  const [otp, setOtp] = useState(["", "", "", "", ""])
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmNewPassword, setConfirmNewPassword] = useState("")
+  const [focusedOtpIndex, setFocusedOtpIndex] = useState(null)
+
+  const otpInputRefs = useRef([])
+
+  const isButtonDisabled = !email || !password
+
+  // OTP Handling Functions
+  const handleOtpChange = (text, index) => {
+    const newOtp = [...otp]
+    newOtp[index] = text
+    setOtp(newOtp)
+    if (text && index < 4) {
+      otpInputRefs.current[index + 1]?.focus()
+    }
+  }
+
+  const handleOtpKeyPress = (e, index) => {
+    if (e.nativeEvent.key === "Backspace" && !otp[index] && index > 0) {
+      otpInputRefs.current[index - 1]?.focus()
+    }
+  }
+
+  // Forgot Password Flow Functions
+  const handleForgotPasswordSubmit = () => {
+    if (forgotPasswordStep === 1) {
+      // Send OTP to email
+      if (forgotEmail) {
+        console.log("Sending OTP to:", forgotEmail)
+        showToast("OTP sent to your email!", "success")
+        setForgotPasswordStep(2)
+      } else {
+        showToast("Please enter your email address", "error")
+      }
+    } else if (forgotPasswordStep === 2) {
+      // Verify OTP
+      const otpCode = otp.join("")
+      if (otpCode.length === 5) {
+        console.log("Verifying OTP:", otpCode)
+        showToast("OTP verified successfully!", "success")
+        setForgotPasswordStep(3)
+      } else {
+        showToast("Please enter complete OTP", "error")
+      }
+    } else if (forgotPasswordStep === 3) {
+      // Set new password
+      if (newPassword === confirmNewPassword && newPassword.length >= 6) {
+        console.log("Password reset successful")
+        showToast("Password reset successfully!", "success")
+        resetForgotPasswordModal()
+      } else if (newPassword !== confirmNewPassword) {
+        showToast("Passwords do not match", "error")
+      } else {
+        showToast("Password must be at least 6 characters", "error")
+      }
+    }
+  }
+
+  const resetForgotPasswordModal = () => {
+    setForgotPasswordModalVisible(false)
+    setForgotPasswordStep(1)
+    setForgotEmail("")
+    setOtp(["", "", "", "", ""])
+    setNewPassword("")
+    setConfirmNewPassword("")
+  }
+
+  const handleResendOTP = () => {
+    showToast("OTP resent to your email!", "info")
+    // Reset OTP inputs
+    setOtp(["", "", "", "", ""])
+    if (otpInputRefs.current[0]) {
+      otpInputRefs.current[0].focus()
+    }
+  }
+
+  const renderForgotPasswordContent = () => {
+    switch (forgotPasswordStep) {
+      case 1:
+        return (
+          <>
+            <Text style={styles.modalTitle}>Forgot Password</Text>
+            <Text style={styles.modalSubtitle}>Enter your email address to receive OTP</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Enter your email"
+              value={forgotEmail}
+              onChangeText={setForgotEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+          </>
+        )
+      case 2:
+        return (
+          <>
+            <Text style={styles.modalTitle}>Verify OTP</Text>
+            <Text style={styles.modalSubtitle}>Enter the 5-digit code sent to {forgotEmail}</Text>
+            <View style={styles.otpContainer}>
+              {otp.map((digit, index) => (
+                <TextInput
+                  key={index}
+                  ref={(ref) => (otpInputRefs.current[index] = ref)}
+                  style={[styles.otpBox, focusedOtpIndex === index && styles.otpBoxFocused]}
+                  keyboardType="number-pad"
+                  maxLength={1}
+                  value={digit}
+                  onChangeText={(text) => handleOtpChange(text, index)}
+                  onKeyPress={(e) => handleOtpKeyPress(e, index)}
+                  onFocus={() => setFocusedOtpIndex(index)}
+                  onBlur={() => setFocusedOtpIndex(null)}
+                />
+              ))}
+            </View>
+            <TouchableOpacity style={styles.resendButton} onPress={handleResendOTP}>
+              <Text style={styles.resendText}>Didn't receive code? Resend</Text>
+            </TouchableOpacity>
+          </>
+        )
+      case 3:
+        return (
+          <>
+            <Text style={styles.modalTitle}>Set New Password</Text>
+            <Text style={styles.modalSubtitle}>Create a new password for your account</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="New Password"
+              secureTextEntry
+              value={newPassword}
+              onChangeText={setNewPassword}
+            />
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Confirm New Password"
+              secureTextEntry
+              value={confirmNewPassword}
+              onChangeText={setConfirmNewPassword}
+            />
+          </>
+        )
+    }
+  }
+
+  const getSubmitButtonText = () => {
+    switch (forgotPasswordStep) {
+      case 1:
+        return "Send OTP"
+      case 2:
+        return "Verify OTP"
+      case 3:
+        return "Reset Password"
+      default:
+        return "Submit"
+    }
+  }
+
+  const isSubmitDisabled = () => {
+    switch (forgotPasswordStep) {
+      case 1:
+        return !forgotEmail
+      case 2:
+        return otp.join("").length < 5
+      case 3:
+        return !newPassword || !confirmNewPassword || newPassword !== confirmNewPassword
+      default:
+        return true
+    }
+  }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#FAFBFC' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#FAFBFC" }}>
+      {/* Toast Component */}
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        duration={toast.duration}
+        onHide={hideToast}
+      />
+
       <KeyboardAvoidingView
-        style={{ flex: 1, padding: 24, backgroundColor: '#FAFBFC' }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1, padding: 24, backgroundColor: "#FAFBFC" }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
           keyboardShouldPersistTaps="handled"
         >
           {/* Logo Image */}
           <View style={styles.logoContainer}>
-            <Image
-              source={require('../assets/icon.png')}
-              style={styles.logoImage}
-              resizeMode="contain"
-            />
+            <Image source={require("../assets/icon.png")} style={styles.logoImage} resizeMode="contain" />
           </View>
 
           {/* Welcome Text */}
@@ -52,10 +235,7 @@ export default function LoginScreen({ navigation }) {
           {/* Email */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Email</Text>
-            <View style={[
-              styles.inputContainer,
-              focusedInput === 'email' && styles.inputContainerFocused
-            ]}>
+            <View style={[styles.inputContainer, focusedInput === "email" && styles.inputContainerFocused]}>
               <View style={styles.inputIcon}>
                 <Ionicons name="person-outline" size={20} color="#4A90E2" />
               </View>
@@ -68,8 +248,8 @@ export default function LoginScreen({ navigation }) {
                 returnKeyType="next"
                 blurOnSubmit={false}
                 onSubmitEditing={() => passwordRef.current?.focus()}
-                onFocus={() => setFocusedInput('email')}
-                onBlur={() => setFocusedInput('')}
+                onFocus={() => setFocusedInput("email")}
+                onBlur={() => setFocusedInput("")}
               />
             </View>
           </View>
@@ -77,10 +257,7 @@ export default function LoginScreen({ navigation }) {
           {/* Password */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Password</Text>
-            <View style={[
-              styles.inputContainer,
-              focusedInput === 'password' && styles.inputContainerFocused
-            ]}>
+            <View style={[styles.inputContainer, focusedInput === "password" && styles.inputContainerFocused]}>
               <View style={styles.inputIcon}>
                 <Ionicons name="lock-closed-outline" size={20} color="#4A90E2" />
               </View>
@@ -92,37 +269,32 @@ export default function LoginScreen({ navigation }) {
                 value={password}
                 onChangeText={setPassword}
                 returnKeyType="done"
-                onFocus={() => setFocusedInput('password')}
-                onBlur={() => setFocusedInput('')}
+                onFocus={() => setFocusedInput("password")}
+                onBlur={() => setFocusedInput("")}
               />
-              <TouchableOpacity
-                style={styles.eyeIcon}
-                onPress={() => setShowPassword(!showPassword)}
-              >
-                <Ionicons
-                  name={showPassword ? 'eye' : 'eye-off'}
-                  size={20}
-                  color="#666"
-                />
+              <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowPassword(!showPassword)}>
+                <Ionicons name={showPassword ? "eye" : "eye-off"} size={20} color="#666" />
               </TouchableOpacity>
             </View>
           </View>
 
           {/* Forgot Password */}
           <View style={styles.forgotContainer}>
-            <TouchableOpacity style={styles.forgotButton}>
+            <TouchableOpacity style={styles.forgotButton} onPress={() => setForgotPasswordModalVisible(true)}>
               <Text style={styles.forgotText}>Forgot password?</Text>
             </TouchableOpacity>
           </View>
 
           {/* Login Button */}
           <TouchableOpacity
-            style={[
-              styles.loginButton,
-              isButtonDisabled && styles.loginButtonDisabled,
-            ]}
+            style={[styles.loginButton, isButtonDisabled && styles.loginButtonDisabled]}
             onPress={() => {
-              if (!isButtonDisabled) navigation.navigate('Home');
+              if (!isButtonDisabled) {
+                showToast("Login successful!", "success")
+                setTimeout(() => {
+                  navigation.replace("MainTabs")
+                }, 1000)
+              }
             }}
             activeOpacity={isButtonDisabled ? 1 : 0.8}
             disabled={isButtonDisabled}
@@ -134,131 +306,34 @@ export default function LoginScreen({ navigation }) {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Forgot Password Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={forgotPasswordModalVisible}
+        onRequestClose={resetForgotPasswordModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {renderForgotPasswordContent()}
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.cancelButton} onPress={resetForgotPasswordModal}>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.submitButton, isSubmitDisabled() && styles.submitButtonDisabled]}
+                onPress={handleForgotPasswordSubmit}
+                disabled={isSubmitDisabled()}
+              >
+                <Text style={styles.submitButtonText}>{getSubmitButtonText()}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
-  );
+  )
 }
 
-const styles = StyleSheet.create({
-  logoContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 30,
-    backgroundColor: '#FAFBFC',
-    paddingInline: 10,
-  },
-  logoImage: {
-    width: 150,
-    height: 150,
-    borderRadius: 20,
-    backgroundColor: '#FAFBFC',
-    shadowColor: '#4A90E2',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  welcomeContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  welcomeTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#1A1D29',
-    marginBottom: 8,
-  },
-  welcomeSubtitle: {
-    fontSize: 15,
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 20,
-    color: '#374151',
-    marginBottom: 15,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-    paddingHorizontal: 16,
-    paddingVertical: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  inputContainerFocused: {
-    borderColor: '#4A90E2',
-    shadowColor: '#4A90E2',
-    shadowOpacity: 0.15,
-  },
-  inputIcon: {
-    marginRight: 12,
-    padding: 8,
-    backgroundColor: '#F0F7FF',
-    borderRadius: 8,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: '#1F2937',
-    paddingVertical: 16,
-    fontWeight: '500',
-  },
-  eyeIcon: {
-    padding: 8,
-    marginLeft: 8,
-  },
-  forgotContainer: {
-    alignItems: 'flex-end',
-    marginBottom: 15,
-  },
-  forgotButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-  },
-  forgotText: {
-    fontSize: 18,
-    color: '#EF4444',
-    fontWeight: '600',
-  },
-  loginButton: {
-    backgroundColor: '#4A90E2',
-    paddingVertical: 16,
-    borderRadius: 16,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#4A90E2',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-    marginTop: 10,
-  },
-  loginButtonDisabled: {
-    opacity: 0.7,
-  },
-  loginButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
-    marginRight: 8,
-  },
-  buttonIcon: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    padding: 6,
-    borderRadius: 20,
-  },
-});
