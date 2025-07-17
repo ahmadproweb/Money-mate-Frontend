@@ -178,6 +178,9 @@ export default StyleSheet.create({
     marginTop: 0,
     marginBottom: 100,
   },
+  categoryMain:{
+    marginBottom: 100,
+  },
   categorySection: {
     backgroundColor: "#FFFFFF",
     borderRadius: 15,
@@ -222,6 +225,7 @@ export default StyleSheet.create({
   },
   expenseName: {
     fontSize: 14,
+    textTransform: 'capitalize',
     color: "#6B7280",
   },
   expenseAmount: {

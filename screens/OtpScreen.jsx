@@ -9,16 +9,22 @@ import {
   Image,
   ScrollView,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import styles from "../css/OtpScreen"
-
+import styles from "../css/OtpScreen";
 import { Ionicons } from '@expo/vector-icons';
+import axios from 'axios';
+import { useToast } from '../hooks/useToast';
+import { Toast } from '../components/Toast';
+import { useUser } from "../context/UserContext";
 
-export default function OtpVerificationScreen({ navigation }) {
+export default function OtpVerificationScreen({ navigation, route }) {
+  const { email } = route.params;
   const inputRefs = useRef([]);
   const [otp, setOtp] = useState(['', '', '', '', '']);
   const [focusedIndex, setFocusedIndex] = useState(null);
-
+  const { fetchProfile } = useUser();
+  const { toast, showToast, hideToast } = useToast();
   const handleChange = (text, index) => {
     const newOtp = [...otp];
     newOtp[index] = text;
@@ -35,16 +41,52 @@ export default function OtpVerificationScreen({ navigation }) {
     }
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     const code = otp.join('');
-    if (code.length === 5) {
-      console.log('OTP:', code);
-      navigation.navigate('Home');
+
+    if (code.length < 5) {
+      showToast('Please enter full OTP code', 'error');
+      return;
+    }
+
+    try {
+      const response = await axios.post('http://10.205.240.128:3000/api/auth/verify', {
+        email,
+        code
+      });
+
+      showToast(response.data.message, 'success');
+      await AsyncStorage.setItem('token', response.data.token);
+      await fetchProfile();
+      setTimeout(() => {
+        navigation.replace('MainTabs');
+      }, 1000);
+
+    } catch (error) {
+      const message = error?.response?.data?.message || 'Verification failed';
+      showToast(message, 'error');
+    }
+  };
+  const handleResendOtp = async () => {
+    try {
+      const response = await axios.post('http://10.205.240.128:3000/api/auth/resend', { email });
+      showToast(response.data.message, 'success');
+    } catch (error) {
+      const message = error?.response?.data?.message || 'Failed to resend OTP';
+      showToast(message, 'error');
     }
   };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FAFBFC' }}>
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        duration={toast.duration}
+        onHide={hideToast}
+      />
+
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -64,7 +106,8 @@ export default function OtpVerificationScreen({ navigation }) {
 
           {/* Headings */}
           <Text style={styles.heading}>Verify OTP</Text>
-          <Text style={styles.subText}>Enter the 5-digit code sent to your email</Text>
+          <Text style={styles.subText}>Enter the 5-digit code sent to:</Text>
+          <Text style={[styles.subText, { fontWeight: 'bold' }]}>{email}</Text>
 
           {/* OTP Boxes */}
           <View style={styles.otpContainer}>
@@ -87,10 +130,10 @@ export default function OtpVerificationScreen({ navigation }) {
             ))}
           </View>
 
-          {/* Resend */}
-          <TouchableOpacity style={styles.resend}>
+          <TouchableOpacity style={styles.resend} onPress={handleResendOtp}>
             <Text style={styles.resendText}>Didn’t receive code? Resend</Text>
           </TouchableOpacity>
+
 
           {/* Continue */}
           <TouchableOpacity
@@ -111,5 +154,3 @@ export default function OtpVerificationScreen({ navigation }) {
     </SafeAreaView>
   );
 }
-
-

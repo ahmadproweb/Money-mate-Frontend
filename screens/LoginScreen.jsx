@@ -14,8 +14,9 @@ import { Ionicons } from "@expo/vector-icons"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { Toast } from "../components/Toast"
 import { useToast } from "../hooks/useToast"
+import { useUser } from "../context/UserContext";
 import styles from "../css/LoginScreen"
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 export default function LoginScreen({ navigation }) {
   const [showPassword, setShowPassword] = useState(false)
   const [focusedInput, setFocusedInput] = useState("")
@@ -23,23 +24,23 @@ export default function LoginScreen({ navigation }) {
   const [password, setPassword] = useState("")
   const passwordRef = useRef(null)
 
-  // Toast hook
   const { toast, showToast, hideToast } = useToast()
+  const { fetchProfile } = useUser();
 
-  // Forgot Password Modal States
   const [forgotPasswordModalVisible, setForgotPasswordModalVisible] = useState(false)
-  const [forgotPasswordStep, setForgotPasswordStep] = useState(1) // 1: Email, 2: OTP, 3: New Password
+  const [forgotPasswordStep, setForgotPasswordStep] = useState(1)
   const [forgotEmail, setForgotEmail] = useState("")
   const [otp, setOtp] = useState(["", "", "", "", ""])
   const [newPassword, setNewPassword] = useState("")
   const [confirmNewPassword, setConfirmNewPassword] = useState("")
   const [focusedOtpIndex, setFocusedOtpIndex] = useState(null)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false)
 
   const otpInputRefs = useRef([])
 
   const isButtonDisabled = !email || !password
 
-  // OTP Handling Functions
   const handleOtpChange = (text, index) => {
     const newOtp = [...otp]
     newOtp[index] = text
@@ -55,33 +56,70 @@ export default function LoginScreen({ navigation }) {
     }
   }
 
-  // Forgot Password Flow Functions
-  const handleForgotPasswordSubmit = () => {
+  const handleForgotPasswordSubmit = async () => {
     if (forgotPasswordStep === 1) {
-      // Send OTP to email
       if (forgotEmail) {
-        console.log("Sending OTP to:", forgotEmail)
-        showToast("OTP sent to your email!", "success")
-        setForgotPasswordStep(2)
+        try {
+          const response = await fetch("http://10.205.240.128:3000/api/auth/forgot-password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: forgotEmail }),
+          })
+          const data = await response.json()
+
+          if (!response.ok) {
+            showToast(data.message || "Failed to send OTP", "error")
+            return
+          }
+
+          showToast(data.message || "OTP sent to your email!", "success")
+          setForgotPasswordStep(2)
+        } catch (error) {
+          showToast("Network error", "error")
+        }
       } else {
         showToast("Please enter your email address", "error")
       }
     } else if (forgotPasswordStep === 2) {
-      // Verify OTP
       const otpCode = otp.join("")
       if (otpCode.length === 5) {
-        console.log("Verifying OTP:", otpCode)
-        showToast("OTP verified successfully!", "success")
         setForgotPasswordStep(3)
       } else {
         showToast("Please enter complete OTP", "error")
       }
     } else if (forgotPasswordStep === 3) {
-      // Set new password
       if (newPassword === confirmNewPassword && newPassword.length >= 6) {
-        console.log("Password reset successful")
-        showToast("Password reset successfully!", "success")
-        resetForgotPasswordModal()
+        try {
+          const response = await fetch("http://10.205.240.128:3000/api/auth/reset-password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: forgotEmail,
+              code: otp.join(""),
+              newPassword,
+            }),
+          })
+
+          const data = await response.json()
+
+          if (!response.ok) {
+            showToast(data.message || "Failed to reset password", "error")
+
+            if (
+              data.message?.toLowerCase().includes("invalid code") ||
+              data.message?.toLowerCase().includes("expired")
+            ) {
+              setForgotPasswordStep(2)
+            }
+
+            return
+          }
+
+          showToast(data.message || "Password reset successfully!", "success")
+          resetForgotPasswordModal()
+        } catch (error) {
+          showToast("Network error", "error")
+        }
       } else if (newPassword !== confirmNewPassword) {
         showToast("Passwords do not match", "error")
       } else {
@@ -99,12 +137,29 @@ export default function LoginScreen({ navigation }) {
     setConfirmNewPassword("")
   }
 
-  const handleResendOTP = () => {
-    showToast("OTP resent to your email!", "info")
-    // Reset OTP inputs
-    setOtp(["", "", "", "", ""])
-    if (otpInputRefs.current[0]) {
-      otpInputRefs.current[0].focus()
+  const handleResendOTP = async () => {
+    if (!forgotEmail) return
+    try {
+      const response = await fetch("http://10.205.240.128:3000/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: forgotEmail }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        showToast(data.message || "Failed to resend OTP", "error")
+        return
+      }
+
+      showToast("OTP resent to your email!", "info")
+      setOtp(["", "", "", "", ""])
+      if (otpInputRefs.current[0]) {
+        otpInputRefs.current[0].focus()
+      }
+    } catch (error) {
+      showToast("Network error", "error")
     }
   }
 
@@ -119,6 +174,7 @@ export default function LoginScreen({ navigation }) {
               style={styles.modalInput}
               placeholder="Enter your email"
               value={forgotEmail}
+              placeholderTextColor="#888"
               onChangeText={setForgotEmail}
               keyboardType="email-address"
               autoCapitalize="none"
@@ -135,6 +191,7 @@ export default function LoginScreen({ navigation }) {
                 <TextInput
                   key={index}
                   ref={(ref) => (otpInputRefs.current[index] = ref)}
+                  placeholderTextColor="#888"
                   style={[styles.otpBox, focusedOtpIndex === index && styles.otpBoxFocused]}
                   keyboardType="number-pad"
                   maxLength={1}
@@ -156,20 +213,40 @@ export default function LoginScreen({ navigation }) {
           <>
             <Text style={styles.modalTitle}>Set New Password</Text>
             <Text style={styles.modalSubtitle}>Create a new password for your account</Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="New Password"
-              secureTextEntry
-              value={newPassword}
-              onChangeText={setNewPassword}
-            />
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Confirm New Password"
-              secureTextEntry
-              value={confirmNewPassword}
-              onChangeText={setConfirmNewPassword}
-            />
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={[styles.input, { flex: 1 }]}
+                placeholder="New Password"
+                placeholderTextColor="#888"
+                secureTextEntry={!showNewPassword}
+                value={newPassword}
+                onChangeText={setNewPassword}
+              />
+              <TouchableOpacity onPress={() => setShowNewPassword(!showNewPassword)}>
+                <Ionicons name={showNewPassword ? "eye" : "eye-off"} size={20} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={[styles.input, { flex: 1 }]}
+                placeholder="Confirm New Password"
+                placeholderTextColor="#888"
+                secureTextEntry={!showConfirmNewPassword}
+                value={confirmNewPassword}
+                onChangeText={setConfirmNewPassword}
+              />
+              <TouchableOpacity onPress={() => setShowConfirmNewPassword(!showConfirmNewPassword)}>
+                <Ionicons name={showConfirmNewPassword ? "eye" : "eye-off"} size={20} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              onPress={() => setForgotPasswordStep(2)}
+              style={{ marginTop: 10, alignSelf: "flex-start" }}
+            >
+              <Text style={{ color: "#4A90E2", fontWeight: "bold" }}>← Back to OTP</Text>
+            </TouchableOpacity>
           </>
         )
     }
@@ -203,15 +280,6 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#FAFBFC" }}>
-      {/* Toast Component */}
-      <Toast
-        visible={toast.visible}
-        message={toast.message}
-        type={toast.type}
-        duration={toast.duration}
-        onHide={hideToast}
-      />
-
       <KeyboardAvoidingView
         style={{ flex: 1, padding: 24, backgroundColor: "#FAFBFC" }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -220,19 +288,15 @@ export default function LoginScreen({ navigation }) {
           contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Logo Image */}
           <View style={styles.logoContainer}>
             <Image source={require("../assets/icon.png")} style={styles.logoImage} resizeMode="contain" />
           </View>
 
-          {/* Welcome Text */}
           <View style={styles.welcomeContainer}>
             <Text style={styles.welcomeTitle}>Welcome Back!</Text>
             <Text style={styles.welcomeSubtitle}>Ready to step up your style? Log in now!</Text>
-            <Text style={styles.welcomeSubtitle}>Access your account to explore exclusive features.</Text>
           </View>
 
-          {/* Email */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Email</Text>
             <View style={[styles.inputContainer, focusedInput === "email" && styles.inputContainerFocused]}>
@@ -245,6 +309,7 @@ export default function LoginScreen({ navigation }) {
                 autoCapitalize="none"
                 value={email}
                 onChangeText={setEmail}
+                placeholderTextColor="#888"
                 returnKeyType="next"
                 blurOnSubmit={false}
                 onSubmitEditing={() => passwordRef.current?.focus()}
@@ -254,7 +319,6 @@ export default function LoginScreen({ navigation }) {
             </View>
           </View>
 
-          {/* Password */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Password</Text>
             <View style={[styles.inputContainer, focusedInput === "password" && styles.inputContainerFocused]}>
@@ -267,6 +331,7 @@ export default function LoginScreen({ navigation }) {
                 secureTextEntry={!showPassword}
                 style={styles.input}
                 value={password}
+                placeholderTextColor="#888"
                 onChangeText={setPassword}
                 returnKeyType="done"
                 onFocus={() => setFocusedInput("password")}
@@ -278,22 +343,43 @@ export default function LoginScreen({ navigation }) {
             </View>
           </View>
 
-          {/* Forgot Password */}
           <View style={styles.forgotContainer}>
             <TouchableOpacity style={styles.forgotButton} onPress={() => setForgotPasswordModalVisible(true)}>
               <Text style={styles.forgotText}>Forgot password?</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Login Button */}
           <TouchableOpacity
             style={[styles.loginButton, isButtonDisabled && styles.loginButtonDisabled]}
-            onPress={() => {
-              if (!isButtonDisabled) {
+            onPress={async () => {
+              if (isButtonDisabled) return
+              try {
+                const response = await fetch("http://10.205.240.128:3000/api/auth/login", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ email, password }),
+                })
+
+                const data = await response.json()
+
+                if (!response.ok) {
+                  showToast(data.message || "Login failed", "error")
+                  if (response.status === 403) {
+                    setTimeout(() => {
+                      navigation.navigate("OtpScreen", { email })
+                    }, 1000)
+                  }
+                  return
+                }
+
                 showToast("Login successful!", "success")
+                await AsyncStorage.setItem('token', data.token);
+                await fetchProfile();
                 setTimeout(() => {
                   navigation.replace("MainTabs")
                 }, 1000)
+              } catch (error) {
+                showToast("Network error", "error")
               }
             }}
             activeOpacity={isButtonDisabled ? 1 : 0.8}
@@ -304,10 +390,15 @@ export default function LoginScreen({ navigation }) {
               <Ionicons name="arrow-forward" size={20} color="#fff" />
             </View>
           </TouchableOpacity>
+          <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 16 }}>
+            <Text style={{ fontSize: 14, color: "#888" }}>Don't have an account? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate("SignUp")}>
+              <Text style={{ fontSize: 14, fontWeight: "bold", color: "#4A90E2" }}>Sign up</Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Forgot Password Modal */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -317,7 +408,6 @@ export default function LoginScreen({ navigation }) {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             {renderForgotPasswordContent()}
-
             <View style={styles.modalButtons}>
               <TouchableOpacity style={styles.cancelButton} onPress={resetForgotPasswordModal}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>
@@ -333,7 +423,13 @@ export default function LoginScreen({ navigation }) {
           </View>
         </View>
       </Modal>
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        duration={toast.duration}
+        onHide={hideToast}
+      />
     </SafeAreaView>
   )
 }
-

@@ -1,99 +1,152 @@
-import { useState } from "react"
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Modal } from "react-native"
-import styles from "../css/MoneyScreen"
+import React, { useEffect, useState } from "react";
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Modal, ActivityIndicator } from "react-native";
+import styles from "../css/MoneyScreen";
+import { useUser } from "../context/UserContext";
+import { useToast } from "../hooks/useToast";
+import { Toast } from "../components/Toast";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useAppContext } from "../context/AppContext";
 
 export default function MoneyScreen() {
-  const [expenses, setExpenses] = useState([
-    { id: 1, name: "Rent", amount: 20000, type: "essentials", date: "2024-01-15" },
-    { id: 2, name: "Groceries", amount: 8000, type: "essentials", date: "2024-01-14" },
-    { id: 3, name: "Shopping", amount: 5000, type: "flexible", date: "2024-01-13" },
-    { id: 4, name: "Entertainment", amount: 3000, type: "non-essentials", date: "2024-01-12" },
-  ])
-    
-  const [modalVisible, setModalVisible] = useState(false)
+  const { profile, loading, fetchProfile } = useUser();
+  const { toast, showToast, hideToast } = useToast();
+  const { currencySymbol } = useAppContext();
+
+  const [modalVisible, setModalVisible] = useState(false);
   const [newExpense, setNewExpense] = useState({
     name: "",
     amount: "",
     type: "essentials",
-  })
+  });
 
-  const addExpense = () => {
+  const handleAddExpense = async () => {
     if (!newExpense.name || !newExpense.amount) {
-      Alert.alert("Error", "Please fill in all fields")
-      return
+      showToast("Please fill in all fields", "error");
+      return;
     }
-    const expense = {
-      id: Date.now(),
-      name: newExpense.name,
-      amount: Number.parseInt(newExpense.amount),
-      type: newExpense.type,
-      date: new Date().toISOString().split("T")[0],
-    }
-    setExpenses([expense, ...expenses])
-    setNewExpense({ name: "", amount: "", type: "essentials" })
-    setModalVisible(false)
-  }
 
-  const deleteExpense = (id) => {
-    Alert.alert("Delete Expense", "Are you sure you want to delete this expense?", [
+    try {
+      const token = await AsyncStorage.getItem("token");
+
+      const res = await fetch("http://10.205.240.128:3000/api/user/expenses", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: newExpense.name,
+          amount: Number.parseInt(newExpense.amount),
+          category: newExpense.type,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.message || "Failed to add expense", "error");
+        return;
+      }
+
+      showToast("Expense added successfully!", "success");
+      setNewExpense({ name: "", amount: "", type: "essentials" });
+      setModalVisible(false);
+      fetchProfile();
+    } catch (err) {
+      showToast("Something went wrong", "error");
+    }
+  };
+
+  const handleDeleteExpense = (id) => {
+    Alert.alert("Delete Expense", "Are you sure?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Delete",
         style: "destructive",
-        onPress: () => setExpenses(expenses.filter((exp) => exp.id !== id)),
-      },
-    ])
-  }
+        onPress: async () => {
+          try {
+            const token = await AsyncStorage.getItem("token");
+            const res = await fetch(`http://10.205.240.128:3000/api/user/expenses/${id}`, {
+              method: "DELETE",
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            });
 
-  const totalExpenses = expenses.reduce((acc, item) => acc + item.amount, 0)
-  const essentialsTotal = expenses.filter((exp) => exp.type === "essentials").reduce((acc, item) => acc + item.amount, 0)
-  const flexibleTotal = expenses.filter((exp) => exp.type === "flexible").reduce((acc, item) => acc + item.amount, 0)
-  const nonEssentialsTotal = expenses.filter((exp) => exp.type === "non-essentials").reduce((acc, item) => acc + item.amount, 0)
+            const data = await res.json();
+            if (!res.ok) {
+              showToast(data.message || "Failed to delete", "error");
+              return;
+            }
+
+            showToast(data.message, "success");
+            fetchProfile();
+          } catch (err) {
+            showToast("Error deleting expense", "error");
+          }
+        },
+      },
+    ]);
+  };
 
   const getTypeDisplay = (type) => {
-    switch(type) {
-      case "essentials": return "Essentials"
-      case "flexible": return "Flexible"
-      case "non-essentials": return "Non Essentials"
-      default: return type
+    switch (type) {
+      case "essentials": return "Essentials";
+      case "flexible": return "Flexible";
+      case "non-essentials": return "Non Essentials";
+      default: return type;
     }
-  }
+  };
 
   const getTypeColor = (type) => {
-    switch(type) {
-      case "essentials": return "#10B981" // Green
-      case "flexible": return "#F59E0B" // Orange
-      case "non-essentials": return "#EF4444" // Red
-      default: return "#6B7280"
+    switch (type) {
+      case "essentials": return "#10B981";
+      case "flexible": return "#F59E0B";
+      case "non-essentials": return "#EF4444";
+      default: return "#6B7280";
     }
-  }
+  };
+
+  const expenses = profile?.expenses || [];
+
+  const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const essentialsTotal = expenses.filter((e) => e.category === "essentials").reduce((sum, e) => sum + e.amount, 0);
+  const flexibleTotal = expenses.filter((e) => e.category === "flexible").reduce((sum, e) => sum + e.amount, 0);
+  const nonEssentialsTotal = expenses.filter((e) => e.category === "non-essentials").reduce((sum, e) => sum + e.amount, 0);
+
+  if (loading) return <View style={styles.container}>
+    <Text style={styles.title}>Money Mate</Text>
+    <ActivityIndicator size="large" color="#4A90E2" style={{ marginTop: 40 }} />
+  </View>;
 
   return (
     <View style={styles.container}>
+      <Toast visible={toast.visible} message={toast.message} type={toast.type} duration={toast.duration} onHide={hideToast} />
+
       <View style={styles.header}>
         <Text style={styles.title}>Expense Manager</Text>
         <Text style={styles.subtitle}>Track and manage your expenses</Text>
       </View>
 
+      {/* Summary Cards */}
       <View style={styles.summaryCards}>
         <View style={styles.summaryCard}>
           <Text style={styles.cardTitle}>Total Expenses</Text>
-          <Text style={styles.cardValue}>₹{totalExpenses.toLocaleString()}</Text>
+          <Text style={styles.cardValue}>{currencySymbol}{totalExpenses.toLocaleString()}</Text>
         </View>
         <View style={[styles.summaryCard, { borderLeftColor: "#10B981" }]}>
           <Text style={styles.cardTitle}>Essentials</Text>
-          <Text style={[styles.cardValue, { color: "#10B981" }]}>₹{essentialsTotal.toLocaleString()}</Text>
+          <Text style={[styles.cardValue, { color: "#10B981" }]}>{currencySymbol}{essentialsTotal.toLocaleString()}</Text>
         </View>
       </View>
 
       <View style={styles.summaryCards}>
         <View style={[styles.summaryCard, { borderLeftColor: "#F59E0B" }]}>
           <Text style={styles.cardTitle}>Flexible</Text>
-          <Text style={[styles.cardValue, { color: "#F59E0B" }]}>₹{flexibleTotal.toLocaleString()}</Text>
+          <Text style={[styles.cardValue, { color: "#F59E0B" }]}>{currencySymbol}{flexibleTotal.toLocaleString()}</Text>
         </View>
         <View style={[styles.summaryCard, { borderLeftColor: "#EF4444" }]}>
           <Text style={styles.cardTitle}>Non Essentials</Text>
-          <Text style={[styles.cardValue, { color: "#EF4444" }]}>₹{nonEssentialsTotal.toLocaleString()}</Text>
+          <Text style={[styles.cardValue, { color: "#EF4444" }]}>{currencySymbol}{nonEssentialsTotal.toLocaleString()}</Text>
         </View>
       </View>
 
@@ -104,119 +157,65 @@ export default function MoneyScreen() {
       </View>
 
       <ScrollView style={styles.expensesList}>
-        <Text style={styles.listTitle}>Recent Expenses</Text>
         {expenses.map((expense) => (
-          <View key={expense.id} style={styles.expenseItem}>
+          <View key={expense._id} style={styles.expenseItem}>
             <View style={styles.expenseInfo}>
               <View style={styles.expenseHeader}>
                 <Text style={styles.expenseName}>{expense.name}</Text>
-                <View
-                  style={[styles.typeTag, { backgroundColor: `${getTypeColor(expense.type)}20` }]}
-                >
-                  <Text
-                    style={[styles.typeText, { color: getTypeColor(expense.type) }]}
-                  >
-                    {getTypeDisplay(expense.type)}
+                <View style={[styles.typeTag, { backgroundColor: `${getTypeColor(expense.category)}20` }]}>
+                  <Text style={[styles.typeText, { color: getTypeColor(expense.category) }]}>
+                    {getTypeDisplay(expense.category)}
                   </Text>
                 </View>
               </View>
               <View style={styles.expenseDetails}>
-                <Text style={styles.expenseAmount}>₹{expense.amount.toLocaleString()}</Text>
-                <Text style={styles.expenseDate}>{expense.date}</Text>
+                <Text style={styles.expenseAmount}>{currencySymbol}{expense.amount.toLocaleString()}</Text>
+                <Text style={styles.expenseDate}> {new Date(expense.createdAt).toLocaleString()}</Text>
               </View>
             </View>
-            <TouchableOpacity style={styles.deleteButton} onPress={() => deleteExpense(expense.id)}>
+            <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteExpense(expense._id)}>
               <Text style={styles.deleteButtonText}>×</Text>
             </TouchableOpacity>
           </View>
         ))}
       </ScrollView>
 
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
+      {/* Modal */}
+      <Modal animationType="slide" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Add New Expense</Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Expense name"
-              value={newExpense.name}
-              onChangeText={(text) => setNewExpense({ ...newExpense, name: text })}
-            />
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Amount"
-              keyboardType="numeric"
-              value={newExpense.amount}
-              onChangeText={(text) => setNewExpense({ ...newExpense, amount: text })}
-            />
-            
-            {/* Enhanced Type Selector with Better Visual Feedback */}
+            <TextInput style={styles.modalInput} placeholderTextColor="#888" placeholder="Expense name" value={newExpense.name} onChangeText={(text) => setNewExpense({ ...newExpense, name: text })} />
+            <TextInput style={styles.modalInput} placeholderTextColor="#888" placeholder="Amount" keyboardType="numeric" value={newExpense.amount} onChangeText={(text) => setNewExpense({ ...newExpense, amount: text })} />
+
             <View style={styles.typeSelector}>
-              <TouchableOpacity
-                style={[
-                  styles.typeButton,
-                  { borderColor: "#10B981" },
-                  newExpense.type === "essentials" && styles.selectedTypeButton,
-                  newExpense.type === "essentials" && { backgroundColor: "#10B981" }
-                ]}
-                onPress={() => setNewExpense({ ...newExpense, type: "essentials" })}
-              >
-                <Text style={[
-                  styles.typeButtonText,
-                  { color: newExpense.type === "essentials" ? "#FFFFFF" : "#10B981" },
-                  newExpense.type === "essentials" && { fontWeight: "bold" }
-                ]}>
-                  Essentials
-                </Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={[
-                  styles.typeButton,
-                  { borderColor: "#F59E0B" },
-                  newExpense.type === "flexible" && styles.selectedTypeButton,
-                  newExpense.type === "flexible" && { backgroundColor: "#F59E0B" }
-                ]}
-                onPress={() => setNewExpense({ ...newExpense, type: "flexible" })}
-              >
-                <Text style={[
-                  styles.typeButtonText,
-                  { color: newExpense.type === "flexible" ? "#FFFFFF" : "#F59E0B" },
-                  newExpense.type === "flexible" && { fontWeight: "bold" }
-                ]}>
-                  Flexible
-                </Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={[
-                  styles.typeButton,
-                  { borderColor: "#EF4444" },
-                  newExpense.type === "non-essentials" && styles.selectedTypeButton,
-                  newExpense.type === "non-essentials" && { backgroundColor: "#EF4444" }
-                ]}
-                onPress={() => setNewExpense({ ...newExpense, type: "non-essentials" })}
-              >
-                <Text style={[
-                  styles.typeButtonText,
-                  { color: newExpense.type === "non-essentials" ? "#FFFFFF" : "#EF4444" },
-                  newExpense.type === "non-essentials" && { fontWeight: "bold" }
-                ]}>
-                  Non Essentials
-                </Text>
-              </TouchableOpacity>
+              {["essentials", "flexible", "non-essentials"].map((type) => (
+                <TouchableOpacity
+                  key={type}
+                  style={[
+                    styles.typeButton,
+                    {
+                      borderColor: getTypeColor(type),
+                      backgroundColor: newExpense.type === type ? getTypeColor(type) : "#fff",
+                    },
+                  ]}
+                  onPress={() => setNewExpense({ ...newExpense, type })}
+                >
+                  <Text style={{
+                    color: newExpense.type === type ? "#fff" : getTypeColor(type),
+                    fontWeight: newExpense.type === type ? "bold" : "normal",
+                  }}>
+                    {getTypeDisplay(type)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
 
             <View style={styles.modalButtons}>
               <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.saveButton} onPress={addExpense}>
+              <TouchableOpacity style={styles.saveButton} onPress={handleAddExpense}>
                 <Text style={styles.saveButtonText}>Add Expense</Text>
               </TouchableOpacity>
             </View>
@@ -224,7 +223,5 @@ export default function MoneyScreen() {
         </View>
       </Modal>
     </View>
-  )
+  );
 }
-
-

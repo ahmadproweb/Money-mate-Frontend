@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,11 +12,13 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import styles from "../css/SignUpScreen"
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-export default function SignupScreen({ navigation }) {
+import { Toast } from "../components/Toast"
+import { useToast } from "../hooks/useToast";
+export default function SignupScreen({ navigation, route }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [focusedInput, setFocusedInput] = useState('');
+  const { toast, showToast, hideToast } = useToast()
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,8 +29,57 @@ export default function SignupScreen({ navigation }) {
 
   const isButtonDisabled = !email || !password || !confirmPassword;
 
+
+  const handleSignup = async () => {
+    if (password !== confirmPassword) {
+      showToast("Passwords do not match", "error");
+      return;
+    }
+
+    try {
+      const response = await fetch('http://10.205.240.128:3000/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        showToast(data.message, "success");
+        navigation.navigate('OtpScreen', { email });
+      } else {
+        showToast(data.message || "Signup failed.", "error");
+
+        if (data.message === "Email is already in use.") {
+          setTimeout(() => {
+            navigation.navigate("Login", { email });
+          }, 2000);
+        }
+      }
+    } catch (error) {
+      showToast("Network error. Please try again.", "error");
+    }
+  };
+
+  useEffect(() => {
+    if (route.params?.email) {
+      setEmail(route.params.email);
+    }
+  }, [route.params]);
+
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FAFBFC' }}>
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        duration={toast.duration}
+        onHide={hideToast}
+      />
       <KeyboardAvoidingView
         style={{ flex: 1, padding: 24 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -38,7 +89,6 @@ export default function SignupScreen({ navigation }) {
           contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Logo */}
           <View style={styles.logoContainer}>
             <Image
               source={require('../assets/icon.png')}
@@ -47,13 +97,11 @@ export default function SignupScreen({ navigation }) {
             />
           </View>
 
-          {/* Welcome Text */}
           <View style={styles.welcomeContainer}>
             <Text style={styles.welcomeTitle}>Create Account</Text>
             <Text style={styles.welcomeSubtitle}>Join us and unlock all features.</Text>
           </View>
 
-          {/* Email */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Email</Text>
             <View style={[styles.inputContainer, focusedInput === 'email' && styles.inputContainerFocused]}>
@@ -75,7 +123,6 @@ export default function SignupScreen({ navigation }) {
             </View>
           </View>
 
-          {/* Password */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Password</Text>
             <View style={[styles.inputContainer, focusedInput === 'password' && styles.inputContainerFocused]}>
@@ -101,7 +148,6 @@ export default function SignupScreen({ navigation }) {
             </View>
           </View>
 
-          {/* Confirm Password */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Confirm Password</Text>
             <View style={[styles.inputContainer, focusedInput === 'confirm' && styles.inputContainerFocused]}>
@@ -125,24 +171,18 @@ export default function SignupScreen({ navigation }) {
             </View>
           </View>
 
-          {/* Signup Button */}
           <TouchableOpacity
-            style={[
-              styles.loginButton,
-              isButtonDisabled && styles.loginButtonDisabled,
-            ]}
-            onPress={() => {
-              if (!isButtonDisabled) navigation.navigate('OtpScreen');
-            }}
+            style={[styles.loginButton, isButtonDisabled && styles.loginButtonDisabled]}
+            onPress={handleSignup}
             activeOpacity={isButtonDisabled ? 1 : 0.8}
             disabled={isButtonDisabled}
           >
-            <Text style={styles.loginButtonText}
-            >Sign Up</Text>
+            <Text style={styles.loginButtonText}>Sign Up</Text>
             <View style={styles.buttonIcon}>
               <Ionicons name="arrow-forward" size={20} color="#fff" />
             </View>
           </TouchableOpacity>
+
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

@@ -10,7 +10,6 @@ export const Toast = ({ visible, message, type = "success", duration = 3000, onH
 
   useEffect(() => {
     if (visible) {
-      // Show animation
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
@@ -24,7 +23,6 @@ export const Toast = ({ visible, message, type = "success", duration = 3000, onH
         }),
       ]).start()
 
-      // Auto hide after duration
       const timer = setTimeout(() => {
         hideToast()
       }, duration)

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AppContext = createContext();
 
@@ -10,16 +10,35 @@ export const useAppContext = () => {
   return context;
 };
 
+const symbolMap = {
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+  JPY: "¥",
+  CAD: "CA$",
+  AUD: "A$",
+  CHF: "Fr",
+  CNY: "¥",
+  INR: "₹",
+};
+
 export const AppProvider = ({ children }) => {
   const [budgetCycle, setBudgetCycle] = useState('Monthly');
-  const [currency, setCurrency] = useState('INR');
+  const [currency, setCurrency] = useState('USD');
+  const [currencySymbol, setCurrencySymbol] = useState(symbolMap['USD']); 
+
+  useEffect(() => {
+    setCurrencySymbol(symbolMap[currency] || "$"); 
+  }, [currency]);
 
   return (
     <AppContext.Provider value={{
       budgetCycle,
       setBudgetCycle,
       currency,
-      setCurrency
+      setCurrency,
+      currencySymbol,
+      setCurrencySymbol
     }}>
       {children}
     </AppContext.Provider>

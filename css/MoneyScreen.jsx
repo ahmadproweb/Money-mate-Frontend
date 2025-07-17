@@ -103,6 +103,7 @@ export default  StyleSheet.create({
   expenseName: {
     fontSize: 16,
     fontWeight: "600",
+    textTransform:"capitalize",
     color: "#1A1D29",
   },
   typeTag: {
@@ -132,14 +133,16 @@ export default  StyleSheet.create({
     backgroundColor: "#FEF2F2",
     width: 30,
     height: 30,
-    borderRadius: 15,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
     marginLeft: 10,
   },
   deleteButtonText: {
     color: "#EF4444",
-    fontSize: 18,
+    fontSize: 30,
+    position:"relative",
+    bottom:4,
     fontWeight: "bold",
   },
   modalOverlay: {

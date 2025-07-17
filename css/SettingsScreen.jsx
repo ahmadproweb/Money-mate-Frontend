@@ -160,4 +160,21 @@ export default StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
+  passwordInputContainer: {
+  flexDirection: "row",
+  alignItems: "center",
+  borderWidth: 1,
+  borderColor: "#D1D5DB",
+  borderRadius: 10,
+  paddingHorizontal: 12,
+  paddingVertical: 10,
+  marginBottom: 15,
+},
+
+passwordInput: {
+  flex: 1,
+  fontSize: 16,
+  color: "#111827",
+},
+
 })

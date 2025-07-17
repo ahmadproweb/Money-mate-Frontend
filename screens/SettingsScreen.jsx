@@ -13,6 +13,8 @@ import { useAppContext } from "../context/AppContext"
 import { Toast } from "../components/Toast"
 import { useToast } from "../hooks/useToast"
 import styles from "../css/SettingsScreen"
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import Icon from "react-native-vector-icons/Feather"
 
 export default function SettingsScreen({ navigation }) {
   const { currency, setCurrency, budgetCycle, setBudgetCycle } = useAppContext()
@@ -23,27 +25,54 @@ export default function SettingsScreen({ navigation }) {
   const [confirmDeleteModalVisible, setConfirmDeleteModalVisible] = useState(false)
   const [currencyModalVisible, setCurrencyModalVisible] = useState(false)
   const [budgetCycleModalVisible, setBudgetCycleModalVisible] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const { toast, showToast, hideToast } = useToast()
 
-  const handleLogout = () => {
-    showToast("Logged out successfully!", "info")
-    setTimeout(() => {
-      navigation.reset({ index: 0, routes: [{ name: "Login" }] })
-    }, 1000)
-  }
+  const handleLogout = async () => {
+    try {
+      await fetch("http://10.205.240.128:3000/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      await AsyncStorage.removeItem("token");
+      showToast("Logged out successfully!", "info");
+      setTimeout(() => {
+        navigation.reset({ index: 0, routes: [{ name: "Login" }] });
+      }, 1000);
+    } catch (error) {
+      showToast("Logout failed", "error");
+    }
+  };
 
   const handleDeleteAccount = () => {
     setConfirmDeleteModalVisible(true)
   }
 
-  const confirmDelete = () => {
-    setConfirmDeleteModalVisible(false)
-    showToast("Account deleted successfully", "success")
-    setTimeout(() => {
-      navigation.reset({ index: 0, routes: [{ name: "Login" }] })
-    }, 1000)
-  }
+  const confirmDelete = async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const res = await fetch("http://10.205.240.128:3000/api/user/delete-account", {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        await AsyncStorage.removeItem("token");
+        showToast("Account deleted successfully", "success");
+        setTimeout(() => {
+          navigation.reset({ index: 0, routes: [{ name: "Login" }] });
+        }, 1000);
+      } else {
+        showToast("Failed to delete account", "error");
+      }
+    } catch (error) {
+      showToast("Something went wrong", "error");
+    }
+  };
 
   const handleBudgetCycleChange = (cycle) => {
     setBudgetCycle(cycle)
@@ -52,25 +81,44 @@ export default function SettingsScreen({ navigation }) {
   }
 
   const handleCurrencyChange = (newCurrency) => {
-    setCurrency(newCurrency)
-    setCurrencyModalVisible(false)
-    showToast(`Currency changed to ${newCurrency}`, "success")
-  }
+    setCurrency(newCurrency);
+    setCurrencyModalVisible(false);
+    showToast(`Currency changed to ${newCurrency}`, "success");
+  };
 
-  const handleChangePassword = () => {
+
+  const handleChangePassword = async () => {
     if (newPassword !== confirmPassword) {
-      showToast("Passwords do not match", "error")
-      return
+      showToast("Passwords do not match", "error");
+      return;
     }
-    if (newPassword.length < 6) {
-      showToast("Password must be at least 6 characters", "error")
-      return
+
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const res = await fetch("http://10.205.240.128:3000/api/user/change-password", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ password: newPassword }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        showToast("Password changed successfully!", "success");
+        setPasswordModalVisible(false);
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        showToast(data.message || "Failed to change password", "error");
+      }
+    } catch (error) {
+      showToast("Something went wrong", "error");
     }
-    showToast("Password changed successfully!", "success")
-    setPasswordModalVisible(false)
-    setNewPassword("")
-    setConfirmPassword("")
-  }
+  };
+
 
   const SettingItem = ({ title, subtitle, onPress, rightComponent }) => (
     <TouchableOpacity style={styles.settingItem} onPress={onPress}>
@@ -134,25 +182,44 @@ export default function SettingsScreen({ navigation }) {
         <Text style={styles.footerSubtext}>Made with ❤️ for better financial management</Text>
       </View>
 
-      {/* Password Modal */}
       <Modal animationType="slide" transparent visible={passwordModalVisible}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Change Password</Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="New Password"
-              secureTextEntry
-              value={newPassword}
-              onChangeText={setNewPassword}
-            />
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Confirm Password"
-              secureTextEntry
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-            />
+            <View style={styles.passwordInputContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="New Password"
+                secureTextEntry={!showNewPassword}
+                value={newPassword}
+                onChangeText={setNewPassword}
+              />
+              <TouchableOpacity onPress={() => setShowNewPassword(!showNewPassword)}>
+                <Icon
+                  name={showNewPassword ? "eye" : "eye-off"}
+                  size={20}
+                  color="#6B7280"
+                />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.passwordInputContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Confirm Password"
+                secureTextEntry={!showConfirmPassword}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+              />
+              <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                <Icon
+                  name={showConfirmPassword ? "eye" : "eye-off"}
+                  size={20}
+                  color="#6B7280"
+                />
+              </TouchableOpacity>
+            </View>
+
             <View style={styles.modalButtons}>
               <TouchableOpacity style={styles.cancelButton} onPress={() => setPasswordModalVisible(false)}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>
@@ -165,7 +232,6 @@ export default function SettingsScreen({ navigation }) {
         </View>
       </Modal>
 
-      {/* Confirm Delete Modal */}
       <Modal transparent visible={confirmDeleteModalVisible} animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -185,12 +251,12 @@ export default function SettingsScreen({ navigation }) {
         </View>
       </Modal>
 
-      {/* Currency Modal */}
       <Modal transparent visible={currencyModalVisible} animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Select Currency</Text>
-            {["INR", "USD", "EUR", "GBP"].map((item) => (
+
+            {["USD", "EUR", "GBP", "JPY", "CAD", "AUD", "CHF", "CNY", "INR"].map((item) => (
               <Pressable
                 key={item}
                 onPress={() => handleCurrencyChange(item)}
@@ -201,24 +267,43 @@ export default function SettingsScreen({ navigation }) {
                   borderRadius: 10,
                   marginBottom: 8,
                   alignSelf: "stretch",
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
                 }}
               >
-                <Text style={{
-                  textAlign: "center",
-                  fontSize: 16,
-                  fontWeight: currency === item ? "700" : "400",
-                  color: currency === item ? "#0284C7" : "#1F2937"
-                }}>
-                  {item} {currency === item ? "✓" : ""}
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: currency === item ? "700" : "400",
+                    color: currency === item ? "#0284C7" : "#1F2937",
+                  }}
+                >
+                  {item}
                 </Text>
+
+                {currency === item && (
+                  <Text style={{ fontSize: 16, color: "#0284C7" }}>✓</Text>
+                )}
               </Pressable>
             ))}
 
+            <TouchableOpacity
+              onPress={() => setCurrencyModalVisible(false)}
+              style={{
+                marginTop: 16,
+                borderRadius: 10,
+              }}
+            >
+              <Text style={{ textAlign: "center", color: "#6B7280", fontSize: 25 }}>
+                Cancel
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
-      {/* Budget Cycle Modal */}
+
       <Modal transparent visible={budgetCycleModalVisible} animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -246,7 +331,17 @@ export default function SettingsScreen({ navigation }) {
                 </Text>
               </Pressable>
             ))}
-
+            <TouchableOpacity
+              onPress={() => setBudgetCycleModalVisible(false)}
+              style={{
+                marginTop: 16,
+                borderRadius: 10,
+              }}
+            >
+              <Text style={{ textAlign: "center", color: "#6B7280", fontSize: 25 }}>
+                Cancel
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
