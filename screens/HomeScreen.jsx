@@ -104,12 +104,12 @@ export default function HomeScreen() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>{budgetCycle} Tracker</Text>
+        <Text style={styles.title}>Money Tracker</Text>
         <Text style={styles.subtitle}>Track your income and expenses</Text>
       </View>
 
       <View style={styles.salarySection}>
-        <Text style={styles.sectionTitle}>{budgetCycle} Tracker</Text>
+        <Text style={styles.sectionTitle}>{budgetCycle} Salary</Text>
         <TextInput
           style={[styles.input, isLocked && styles.disabledInput]}
           editable={!isLocked}

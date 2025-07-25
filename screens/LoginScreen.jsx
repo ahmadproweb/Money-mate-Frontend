@@ -354,7 +354,7 @@ export default function LoginScreen({ navigation }) {
             onPress={async () => {
               if (isButtonDisabled) return
               try {
-                const response = await fetch("http://10.205.240.128:3000/api/auth/login", {
+                const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/auth/login`, {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ email, password }),
