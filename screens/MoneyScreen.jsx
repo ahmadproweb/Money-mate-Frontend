@@ -6,11 +6,13 @@ import { useToast } from "../hooks/useToast";
 import { Toast } from "../components/Toast";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAppContext } from "../context/AppContext";
+import { useLoading } from "../context/LoadingContext";
 
 export default function MoneyScreen() {
   const { profile, loading, fetchProfile } = useUser();
   const { toast, showToast, hideToast } = useToast();
   const { currencySymbol } = useAppContext();
+  const { showLoader, hideLoader } = useLoading();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [newExpense, setNewExpense] = useState({
@@ -24,11 +26,11 @@ export default function MoneyScreen() {
       showToast("Please fill in all fields", "error");
       return;
     }
-
+    showLoader();
     try {
       const token = await AsyncStorage.getItem("token");
 
-      const res = await fetch("http://10.205.240.128:3000/api/user/expenses", {
+      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/user/expenses`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -53,6 +55,8 @@ export default function MoneyScreen() {
       fetchProfile();
     } catch (err) {
       showToast("Something went wrong", "error");
+    } finally {
+      hideLoader();
     }
   };
 
@@ -63,9 +67,10 @@ export default function MoneyScreen() {
         text: "Delete",
         style: "destructive",
         onPress: async () => {
+          showLoader();
           try {
             const token = await AsyncStorage.getItem("token");
-            const res = await fetch(`http://10.205.240.128:3000/api/user/expenses/${id}`, {
+            const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/user/expenses/${id}`, {
               method: "DELETE",
               headers: {
                 Authorization: `Bearer ${token}`,
@@ -82,6 +87,8 @@ export default function MoneyScreen() {
             fetchProfile();
           } catch (err) {
             showToast("Error deleting expense", "error");
+          } finally {
+            hideLoader();
           }
         },
       },
@@ -127,7 +134,6 @@ export default function MoneyScreen() {
         <Text style={styles.subtitle}>Track and manage your expenses</Text>
       </View>
 
-      {/* Summary Cards */}
       <View style={styles.summaryCards}>
         <View style={styles.summaryCard}>
           <Text style={styles.cardTitle}>Total Expenses</Text>
@@ -180,7 +186,6 @@ export default function MoneyScreen() {
         ))}
       </ScrollView>
 
-      {/* Modal */}
       <Modal animationType="slide" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>

@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Modal,
+  Image,
   TextInput,
   Pressable,
 } from "react-native"
@@ -15,6 +16,9 @@ import { useToast } from "../hooks/useToast"
 import styles from "../css/SettingsScreen"
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Icon from "react-native-vector-icons/Feather"
+import { Linking } from 'react-native';
+import { FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useLoading } from "../context/LoadingContext"
 
 export default function SettingsScreen({ navigation }) {
   const { currency, setCurrency, budgetCycle, setBudgetCycle } = useAppContext()
@@ -27,12 +31,14 @@ export default function SettingsScreen({ navigation }) {
   const [budgetCycleModalVisible, setBudgetCycleModalVisible] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const { showLoader, hideLoader } = useLoading();
 
   const { toast, showToast, hideToast } = useToast()
 
   const handleLogout = async () => {
+    showLoader();
     try {
-      await fetch("http://10.205.240.128:3000/api/auth/logout", {
+      await fetch(`${process.env.EXPO_PUBLIC_API_URL}/auth/logout`, {
         method: "POST",
         credentials: "include",
       });
@@ -43,6 +49,8 @@ export default function SettingsScreen({ navigation }) {
       }, 1000);
     } catch (error) {
       showToast("Logout failed", "error");
+    } finally {
+      hideLoader();
     }
   };
 
@@ -51,9 +59,10 @@ export default function SettingsScreen({ navigation }) {
   }
 
   const confirmDelete = async () => {
+    showLoader();
     try {
       const token = await AsyncStorage.getItem("token");
-      const res = await fetch("http://10.205.240.128:3000/api/user/delete-account", {
+      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/user/delete-account`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -71,6 +80,8 @@ export default function SettingsScreen({ navigation }) {
       }
     } catch (error) {
       showToast("Something went wrong", "error");
+    } finally {
+      hideLoader();
     }
   };
 
@@ -92,10 +103,10 @@ export default function SettingsScreen({ navigation }) {
       showToast("Passwords do not match", "error");
       return;
     }
-
+    showLoader();
     try {
       const token = await AsyncStorage.getItem("token");
-      const res = await fetch("http://10.205.240.128:3000/api/user/change-password", {
+      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/user/change-password`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -116,6 +127,8 @@ export default function SettingsScreen({ navigation }) {
       }
     } catch (error) {
       showToast("Something went wrong", "error");
+    } finally {
+      hideLoader();
     }
   };
 
@@ -178,10 +191,44 @@ export default function SettingsScreen({ navigation }) {
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>Budget Tracker v1.0.0</Text>
+        <Text style={styles.footerText}>Money Mate v1.0.0</Text>
         <Text style={styles.footerSubtext}>Made with ❤️ for better financial management</Text>
       </View>
-
+      <View style={styles.devContainer}>
+        <Text style={styles.devText}>
+          <Text style={{ fontWeight: 'bold' }}>💼 Open for work :</Text> freelance, consulting, or collaboration.
+        </Text>
+        <View style={styles.iconRow}>
+          <TouchableOpacity onPress={() => Linking.openURL('https://www.fiverr.com/ahmad_pro_web')}>
+            <Image
+              source={require('../assets/fiver.png')}
+              style={{ width: 26, height: 26, marginHorizontal: 6 }}
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => Linking.openURL('https://ahmadproweb.com')}>
+            <MaterialCommunityIcons name="web" size={26} color="#333" style={styles.icon} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => Linking.openURL('mailto:contact@ahmadproweb.com')}>
+            <MaterialCommunityIcons name="email" size={26} color="#EA4335" style={styles.icon} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => Linking.openURL('https://github.com/ahmadproweb')}>
+            <MaterialCommunityIcons name="github" size={26} color="#181717" style={styles.icon} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => Linking.openURL('https://linkedin.com/in/ahmadproweb')}>
+            <FontAwesome name="linkedin" size={26} color="#0077B5" style={styles.icon} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => Linking.openURL('https://wa.me/+923106082642')}>
+            <FontAwesome name="whatsapp" size={26} color="#25D366" style={styles.icon} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => Linking.openURL('https://instagram.com/ahmadproweb')}>
+            <FontAwesome name="instagram" size={26} color="#C13584" style={styles.icon} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => Linking.openURL('https://facebook.com/ahmadprowebofficial')}>
+            <FontAwesome name="facebook" size={26} color="#1877F2" style={styles.icon} />
+          </TouchableOpacity>
+        </View>
+      </View>
       <Modal animationType="slide" transparent visible={passwordModalVisible}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>

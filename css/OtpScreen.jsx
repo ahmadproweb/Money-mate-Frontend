@@ -39,6 +39,7 @@ export default  StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 25,
+    marginInline: 20,
   },
   otpBox: {
     width: 60,

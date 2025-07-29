@@ -176,5 +176,24 @@ passwordInput: {
   fontSize: 16,
   color: "#111827",
 },
+  devContainer: {
+    alignItems: 'center',
+  },
 
+  devText: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 15,
+  },
+
+  iconRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 14,
+  },
+
+  icon: {
+    marginHorizontal: 6,
+  },
 })

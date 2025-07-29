@@ -17,6 +17,7 @@ import { useToast } from "../hooks/useToast"
 import { useUser } from "../context/UserContext";
 import styles from "../css/LoginScreen"
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useLoading } from "../context/LoadingContext"
 export default function LoginScreen({ navigation }) {
   const [showPassword, setShowPassword] = useState(false)
   const [focusedInput, setFocusedInput] = useState("")
@@ -36,6 +37,7 @@ export default function LoginScreen({ navigation }) {
   const [focusedOtpIndex, setFocusedOtpIndex] = useState(null)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false)
+  const { showLoader, hideLoader } = useLoading();
 
   const otpInputRefs = useRef([])
 
@@ -59,8 +61,9 @@ export default function LoginScreen({ navigation }) {
   const handleForgotPasswordSubmit = async () => {
     if (forgotPasswordStep === 1) {
       if (forgotEmail) {
+        showLoader();
         try {
-          const response = await fetch("http://10.205.240.128:3000/api/auth/forgot-password", {
+          const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/auth/forgot-password`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email: forgotEmail }),
@@ -76,6 +79,8 @@ export default function LoginScreen({ navigation }) {
           setForgotPasswordStep(2)
         } catch (error) {
           showToast("Network error", "error")
+        } finally {
+          hideLoader();
         }
       } else {
         showToast("Please enter your email address", "error")
@@ -89,8 +94,9 @@ export default function LoginScreen({ navigation }) {
       }
     } else if (forgotPasswordStep === 3) {
       if (newPassword === confirmNewPassword && newPassword.length >= 6) {
+        showLoader();
         try {
-          const response = await fetch("http://10.205.240.128:3000/api/auth/reset-password", {
+          const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/auth/reset-password`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -119,6 +125,8 @@ export default function LoginScreen({ navigation }) {
           resetForgotPasswordModal()
         } catch (error) {
           showToast("Network error", "error")
+        } finally {
+          hideLoader();
         }
       } else if (newPassword !== confirmNewPassword) {
         showToast("Passwords do not match", "error")
@@ -139,8 +147,9 @@ export default function LoginScreen({ navigation }) {
 
   const handleResendOTP = async () => {
     if (!forgotEmail) return
+    showLoader();
     try {
-      const response = await fetch("http://10.205.240.128:3000/api/auth/forgot-password", {
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/auth/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: forgotEmail }),
@@ -160,6 +169,8 @@ export default function LoginScreen({ navigation }) {
       }
     } catch (error) {
       showToast("Network error", "error")
+    } finally {
+      hideLoader();
     }
   }
 
@@ -353,6 +364,7 @@ export default function LoginScreen({ navigation }) {
             style={[styles.loginButton, isButtonDisabled && styles.loginButtonDisabled]}
             onPress={async () => {
               if (isButtonDisabled) return
+              showLoader();
               try {
                 const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/auth/login`, {
                   method: "POST",
@@ -380,6 +392,8 @@ export default function LoginScreen({ navigation }) {
                 }, 1000)
               } catch (error) {
                 showToast("Network error", "error")
+              } finally {
+                hideLoader();
               }
             }}
             activeOpacity={isButtonDisabled ? 1 : 0.8}

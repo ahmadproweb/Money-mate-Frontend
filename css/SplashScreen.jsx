@@ -18,9 +18,9 @@ export default StyleSheet.create({
     width: 180,
     height: 180,
     backgroundColor: '#fff',
+    shadowColor: '#4A90E2',
     borderRadius: 20,
     marginBottom: 40,
-    shadowColor: '#4A90E2',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 10,
@@ -70,4 +70,26 @@ export default StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
   },
+  devContainer: {
+    marginTop: 50,
+    alignItems: 'center',
+  },
+
+  devText: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 15,
+  },
+
+  iconRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 14,
+  },
+
+  icon: {
+    marginHorizontal: 6,
+  },
+
 });

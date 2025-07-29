@@ -43,7 +43,7 @@ export default function HomeScreen() {
     try {
       const token = await AsyncStorage.getItem("token");
 
-      const res = await fetch("http://10.205.240.128:3000/api/user/income", {
+      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/user/income`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

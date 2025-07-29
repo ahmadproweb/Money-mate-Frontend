@@ -88,9 +88,10 @@ export default StyleSheet.create({
     marginRight: 8,
   },
   buttonIcon: {
-    marginLeft: 8,
+     backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
+    padding: 4,
   },
-  // Modal Styles
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",

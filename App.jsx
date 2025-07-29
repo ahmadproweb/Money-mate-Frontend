@@ -15,6 +15,8 @@ import OtpScreen from "./screens/OtpScreen";
 import HomeScreen from "./screens/HomeScreen";
 import MoneyScreen from "./screens/MoneyScreen";
 import SettingsScreen from "./screens/SettingsScreen";
+import { LoadingProvider } from "./context/LoadingContext";
+import { GlobalLoader } from "./components/GlobalLoader";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -110,8 +112,10 @@ function MainTabs() {
 
 export default function App() {
   return (
+     <LoadingProvider>
     <AppProvider>
       <UserProvider>
+       <GlobalLoader />
         <NavigationContainer>
           <Stack.Navigator initialRouteName="Splash" screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Splash" component={SplashScreen} />
@@ -123,5 +127,6 @@ export default function App() {
         </NavigationContainer>
       </UserProvider>
     </AppProvider>
+    </LoadingProvider>
   );
 }

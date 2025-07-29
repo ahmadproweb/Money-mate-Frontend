@@ -17,6 +17,7 @@ import axios from 'axios';
 import { useToast } from '../hooks/useToast';
 import { Toast } from '../components/Toast';
 import { useUser } from "../context/UserContext";
+import { useLoading } from '../context/LoadingContext';
 
 export default function OtpVerificationScreen({ navigation, route }) {
   const { email } = route.params;
@@ -25,6 +26,8 @@ export default function OtpVerificationScreen({ navigation, route }) {
   const [focusedIndex, setFocusedIndex] = useState(null);
   const { fetchProfile } = useUser();
   const { toast, showToast, hideToast } = useToast();
+    const { showLoader, hideLoader } = useLoading();
+  
   const handleChange = (text, index) => {
     const newOtp = [...otp];
     newOtp[index] = text;
@@ -48,9 +51,10 @@ export default function OtpVerificationScreen({ navigation, route }) {
       showToast('Please enter full OTP code', 'error');
       return;
     }
+    showLoader();
 
     try {
-      const response = await axios.post('http://10.205.240.128:3000/api/auth/verify', {
+      const response = await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/auth/verify`, {
         email,
         code
       });
@@ -65,15 +69,20 @@ export default function OtpVerificationScreen({ navigation, route }) {
     } catch (error) {
       const message = error?.response?.data?.message || 'Verification failed';
       showToast(message, 'error');
+    } finally {
+      hideLoader();
     }
   };
   const handleResendOtp = async () => {
+    showLoader();
     try {
-      const response = await axios.post('http://10.205.240.128:3000/api/auth/resend', { email });
+      const response = await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/auth/resend`, { email });
       showToast(response.data.message, 'success');
     } catch (error) {
       const message = error?.response?.data?.message || 'Failed to resend OTP';
       showToast(message, 'error');
+    } finally {
+      hideLoader();
     }
   };
 
@@ -95,7 +104,6 @@ export default function OtpVerificationScreen({ navigation, route }) {
           contentContainerStyle={styles.container}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Logo Image */}
           <View style={styles.logoContainer}>
             <Image
               source={require('../assets/icon.png')}
@@ -104,12 +112,10 @@ export default function OtpVerificationScreen({ navigation, route }) {
             />
           </View>
 
-          {/* Headings */}
           <Text style={styles.heading}>Verify OTP</Text>
           <Text style={styles.subText}>Enter the 5-digit code sent to:</Text>
           <Text style={[styles.subText, { fontWeight: 'bold' }]}>{email}</Text>
 
-          {/* OTP Boxes */}
           <View style={styles.otpContainer}>
             {otp.map((digit, index) => (
               <TextInput
@@ -135,11 +141,10 @@ export default function OtpVerificationScreen({ navigation, route }) {
           </TouchableOpacity>
 
 
-          {/* Continue */}
           <TouchableOpacity
             style={[
               styles.continueButton,
-              otp.join('').length < 5 && { opacity: 0.5 },
+              otp.join('').length < 5 && { opacity: 0.5, backgroundColor: '#9CA3AF' },
             ]}
             onPress={handleContinue}
             disabled={otp.join('').length < 5}

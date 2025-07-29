@@ -17,7 +17,7 @@ export const UserProvider = ({ children }) => {
         return;
       }
 
-      const res = await fetch('http://10.205.240.128:3000/api/user/profile', {
+      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/user/profile`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -31,7 +31,7 @@ export const UserProvider = ({ children }) => {
         setProfile(data);
       }
     } catch (error) {
-      console.log('❌ Error fetching profile:', error);
+      // console.log('❌ Error fetching profile:', error);
     } finally {
       setLoading(false);
     }

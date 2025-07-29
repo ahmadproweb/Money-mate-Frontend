@@ -14,12 +14,14 @@ import styles from "../css/SignUpScreen"
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Toast } from "../components/Toast"
 import { useToast } from "../hooks/useToast";
+import { useLoading } from '../context/LoadingContext';
+
 export default function SignupScreen({ navigation, route }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [focusedInput, setFocusedInput] = useState('');
   const { toast, showToast, hideToast } = useToast()
-
+  const { showLoader, hideLoader } = useLoading();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -35,9 +37,9 @@ export default function SignupScreen({ navigation, route }) {
       showToast("Passwords do not match", "error");
       return;
     }
-
+    showLoader();
     try {
-      const response = await fetch('http://10.205.240.128:3000/api/auth/signup', {
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/auth/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -61,6 +63,8 @@ export default function SignupScreen({ navigation, route }) {
       }
     } catch (error) {
       showToast("Network error. Please try again.", "error");
+    } finally {
+      hideLoader();
     }
   };
 
@@ -173,6 +177,7 @@ export default function SignupScreen({ navigation, route }) {
 
           <TouchableOpacity
             style={[styles.loginButton, isButtonDisabled && styles.loginButtonDisabled]}
+
             onPress={handleSignup}
             activeOpacity={isButtonDisabled ? 1 : 0.8}
             disabled={isButtonDisabled}
@@ -182,7 +187,12 @@ export default function SignupScreen({ navigation, route }) {
               <Ionicons name="arrow-forward" size={20} color="#fff" />
             </View>
           </TouchableOpacity>
-
+          <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 16 }}>
+            <Text style={{ fontSize: 14, color: "#888" }}>Do You have an account? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+              <Text style={{ fontSize: 14, fontWeight: "bold", color: "#4A90E2" }}>Login</Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
