@@ -2,6 +2,7 @@
   "expo": {
     "name": "Money Mate",
     "slug": "money-mate",
+    "owner": "ahmadproweb",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon-square.png",
@@ -12,16 +13,26 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "runtimeVersion": {
+        "policy": "appVersion"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon-square.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.ahmadproweb.moneymate",
+      "runtimeVersion": "1.0.0"
     },
     "web": {
       "favicon": "./assets/icon-square.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "6da9ea15-2f7c-4a8e-ad95-f1d6376998fc"
+      }
     }
   }
 }

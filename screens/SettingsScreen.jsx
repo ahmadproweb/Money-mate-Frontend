@@ -194,41 +194,6 @@ export default function SettingsScreen({ navigation }) {
         <Text style={styles.footerText}>Money Mate v1.0.0</Text>
         <Text style={styles.footerSubtext}>Made with ❤️ for better financial management</Text>
       </View>
-      <View style={styles.devContainer}>
-        <Text style={styles.devText}>
-          <Text style={{ fontWeight: 'bold' }}>💼 Open for work :</Text> freelance, consulting, or collaboration.
-        </Text>
-        <View style={styles.iconRow}>
-          <TouchableOpacity onPress={() => Linking.openURL('https://www.fiverr.com/ahmad_pro_web')}>
-            <Image
-              source={require('../assets/fiver.png')}
-              style={{ width: 26, height: 26, marginHorizontal: 6 }}
-              resizeMode="contain"
-            />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => Linking.openURL('https://ahmadproweb.com')}>
-            <MaterialCommunityIcons name="web" size={26} color="#333" style={styles.icon} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => Linking.openURL('mailto:contact@ahmadproweb.com')}>
-            <MaterialCommunityIcons name="email" size={26} color="#EA4335" style={styles.icon} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => Linking.openURL('https://github.com/ahmadproweb')}>
-            <MaterialCommunityIcons name="github" size={26} color="#181717" style={styles.icon} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => Linking.openURL('https://linkedin.com/in/ahmadproweb')}>
-            <FontAwesome name="linkedin" size={26} color="#0077B5" style={styles.icon} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => Linking.openURL('https://wa.me/+923106082642')}>
-            <FontAwesome name="whatsapp" size={26} color="#25D366" style={styles.icon} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => Linking.openURL('https://instagram.com/ahmadproweb')}>
-            <FontAwesome name="instagram" size={26} color="#C13584" style={styles.icon} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => Linking.openURL('https://facebook.com/ahmadprowebofficial')}>
-            <FontAwesome name="facebook" size={26} color="#1877F2" style={styles.icon} />
-          </TouchableOpacity>
-        </View>
-      </View>
       <Modal animationType="slide" transparent visible={passwordModalVisible}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -238,6 +203,8 @@ export default function SettingsScreen({ navigation }) {
                 style={styles.passwordInput}
                 placeholder="New Password"
                 secureTextEntry={!showNewPassword}
+                placeholderTextColor="#888"
+
                 value={newPassword}
                 onChangeText={setNewPassword}
               />
@@ -253,6 +220,8 @@ export default function SettingsScreen({ navigation }) {
             <View style={styles.passwordInputContainer}>
               <TextInput
                 style={styles.passwordInput}
+                placeholderTextColor="#888"
+
                 placeholder="Confirm Password"
                 secureTextEntry={!showConfirmPassword}
                 value={confirmPassword}

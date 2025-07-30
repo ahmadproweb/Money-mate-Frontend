@@ -178,6 +178,7 @@ passwordInput: {
 },
   devContainer: {
     alignItems: 'center',
+    marginBottom: 30,
   },
 
   devText: {

@@ -118,6 +118,8 @@ export default function SignupScreen({ navigation, route }) {
                 value={email}
                 onChangeText={setEmail}
                 autoCapitalize="none"
+                placeholderTextColor="#888"
+
                 returnKeyType="next"
                 blurOnSubmit={false}
                 onSubmitEditing={() => passwordRef.current?.focus()}
@@ -136,6 +138,8 @@ export default function SignupScreen({ navigation, route }) {
               <TextInput
                 ref={passwordRef}
                 placeholder="Enter password"
+                                placeholderTextColor="#888"
+              
                 secureTextEntry={!showPassword}
                 style={styles.input}
                 value={password}
@@ -163,6 +167,8 @@ export default function SignupScreen({ navigation, route }) {
                 placeholder="Re-enter password"
                 secureTextEntry={!showConfirmPassword}
                 style={styles.input}
+                placeholderTextColor="#888"
+
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 returnKeyType="done"
